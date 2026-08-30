@@ -13,7 +13,7 @@ export default function Header() {
 
           <div>
             <h1 className="text-sm font-semibold tracking-tight text-white sm:text-base">
-              CubeFlux
+              Rubixq
             </h1>
 
             <p className="text-[11px] text-slate-500 sm:text-xs">

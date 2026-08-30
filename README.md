@@ -1,6 +1,6 @@
-# CubeFlux
+# Rubixq
 
-A futuristic 3D Rubik's Cube solver built with Next.js, Three.js and React Three Fiber. CubeFlux combines an interactive 3D cube, physical move animations and step-by-step solution playback in a responsive UI.
+A futuristic 3D Rubik's Cube solver built with Next.js, Three.js and React Three Fiber. Rubixq combines an interactive 3D cube, physical move animations and step-by-step solution playback in a responsive UI.
 
 ## Overview
 
@@ -36,31 +36,30 @@ A futuristic 3D Rubik's Cube solver built with Next.js, Three.js and React Three
 ### Installation
 
 ```bash
-git clone https://github.com/samoff04/CubeFlux.git
-cd CubeFlux
+git clone https://github.com/samoff04/Rubixq.git
+cd Rubixq
 npm install
 npm run dev
 ```
 
 ## Project Structure
-
 ```
-src/
-├── app/
-├── components/
-│   ├── cube/
-│   ├── controls/
-│   ├── layout/
-│   ├── solver/
-│   └── ui/
-├── lib/
-│   ├── cube/
-│   └── solver/
-├── store/
-├── types/
+Rubixq/
+├── src/
+│   ├── app/
+│   ├── components/
+│   ├── lib/
+│   ├── store/
+│   └── types/
 ├── docs/
-public/
-└── cube-icon.png
+├── public/
+├── .gitignore
+├── package.json
+├── package-lock.json
+├── next.config.js
+├── postcss.config.mjs
+├── tsconfig.json
+└── README.md
 ```
 
 ## Author

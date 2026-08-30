@@ -10,7 +10,6 @@ import {
 import Background from "@/components/layout/Background";
 import Header from "@/components/layout/Header";
 import GlassCard from "@/components/ui/GlassCard";
-import StatusBadge from "@/components/ui/StatusBadge";
 import CubeControls from "@/components/controls/CubeControls";
 import SolutionPanel from "@/components/solver/SolutionPanel";
 import SolverControls from "@/components/solver/SolverControls";
@@ -64,7 +63,7 @@ export default function Home() {
         >
           <div className="mb-5 inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-400/5 px-3 py-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-cyan-300">
-              CubeFlux Intelligence
+              Rubixq Intelligence
             </span>
           </div>
 
