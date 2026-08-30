@@ -5,8 +5,11 @@ A futuristic 3D Rubik's Cube solver built with Next.js, Three.js and React Three
 ## Overview
 
 ![alt text](docs/image.png)
+---
 ![alt text](docs/image-1.png)
+---
 ![alt text](docs/image-2.png)
+---
 
 ## Features
 
