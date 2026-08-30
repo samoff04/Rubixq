@@ -1,11 +1,11 @@
-import { CubeState, Face, Move } from "@/types/cube";
+import { CubeState, Color, Face, Move } from "@/types/cube";
 import { cloneCube } from "./cubeState";
 
 function rotateFace(
-  face: string[][],
+  face: Color[][],
   clockwise = true
-): string[][] {
-  const result = Array.from(
+): Color[][] {
+  const result: Color[][] = Array.from(
     { length: 3 },
     () => Array(3)
   );
@@ -23,7 +23,7 @@ function rotateFace(
   return result;
 }
 
-function reverse(values: string[]) {
+function reverse(values: Color[]): Color[] {
   return [...values].reverse();
 }
 
@@ -31,7 +31,7 @@ function getRow(
   cube: CubeState,
   face: Face,
   row: number
-) {
+): Color[] {
   return [...cube[face][row]];
 }
 
@@ -39,7 +39,7 @@ function setRow(
   cube: CubeState,
   face: Face,
   row: number,
-  values: string[]
+  values: Color[]
 ) {
   cube[face][row] = [...values];
 }
@@ -48,7 +48,7 @@ function getCol(
   cube: CubeState,
   face: Face,
   col: number
-) {
+): Color[] {
   return cube[face].map((row) => row[col]);
 }
 
@@ -56,14 +56,14 @@ function setCol(
   cube: CubeState,
   face: Face,
   col: number,
-  values: string[]
+  values: Color[]
 ) {
   for (let i = 0; i < 3; i++) {
     cube[face][i][col] = values[i];
   }
 }
 
-function moveU(cube: CubeState) {
+function moveU(cube: CubeState): CubeState {
   const next = cloneCube(cube);
 
   next.U = rotateFace(cube.U);
@@ -81,7 +81,7 @@ function moveU(cube: CubeState) {
   return next;
 }
 
-function moveD(cube: CubeState) {
+function moveD(cube: CubeState): CubeState {
   const next = cloneCube(cube);
 
   next.D = rotateFace(cube.D);
@@ -99,7 +99,7 @@ function moveD(cube: CubeState) {
   return next;
 }
 
-function moveF(cube: CubeState) {
+function moveF(cube: CubeState): CubeState {
   const next = cloneCube(cube);
 
   next.F = rotateFace(cube.F);
@@ -117,7 +117,7 @@ function moveF(cube: CubeState) {
   return next;
 }
 
-function moveB(cube: CubeState) {
+function moveB(cube: CubeState): CubeState {
   const next = cloneCube(cube);
 
   next.B = rotateFace(cube.B);
@@ -135,7 +135,7 @@ function moveB(cube: CubeState) {
   return next;
 }
 
-function moveR(cube: CubeState) {
+function moveR(cube: CubeState): CubeState {
   const next = cloneCube(cube);
 
   next.R = rotateFace(cube.R);
@@ -153,7 +153,7 @@ function moveR(cube: CubeState) {
   return next;
 }
 
-function moveL(cube: CubeState) {
+function moveL(cube: CubeState): CubeState {
   const next = cloneCube(cube);
 
   next.L = rotateFace(cube.L);
