@@ -2,6 +2,12 @@
 
 A futuristic 3D Rubik's Cube solver built with Next.js, Three.js and React Three Fiber. CubeFlux combines an interactive 3D cube, physical move animations and step-by-step solution playback in a responsive UI.
 
+## Overview
+
+![alt text](docs/image.png)
+![alt text](docs/image-1.png)
+![alt text](docs/image-2.png)
+
 ## Features
 
 - Interactive 3×3 Rubik's Cube with camera rotation and zoom
@@ -36,7 +42,7 @@ npm install
 npm run dev
 ```
 
-### Project Structure
+## Project Structure
 
 ```
 src/
@@ -51,12 +57,12 @@ src/
 │   ├── cube/
 │   └── solver/
 ├── store/
-└── types/
-
+├── types/
+├── docs/
 public/
 └── cube-icon.png
 ```
 
-### Author
+## Author
 
 Samarth Varshney
