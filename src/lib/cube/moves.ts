@@ -1,194 +1,220 @@
 import { CubeState, Color, Face, Move } from "@/types/cube";
 import { cloneCube } from "./cubeState";
 
-function rotateFace(
-  face: Color[][],
-  clockwise = true
-): Color[][] {
-  const result: Color[][] = Array.from(
-    { length: 3 },
-    () => Array(3)
-  );
+type Vec3 = [number, number, number];
 
-  for (let row = 0; row < 3; row++) {
-    for (let col = 0; col < 3; col++) {
-      if (clockwise) {
-        result[col][2 - row] = face[row][col];
-      } else {
-        result[2 - col][row] = face[row][col];
+const faces: Face[] = ["U", "D", "L", "R", "F", "B"];
+
+function rotateVector(
+  vector: Vec3,
+  axis: "x" | "y" | "z",
+  direction: number
+): Vec3 {
+  const [x, y, z] = vector;
+
+  if (axis === "x") {
+    return direction === 1
+      ? [x, -z, y]
+      : [x, z, -y];
+  }
+
+  if (axis === "y") {
+    return direction === 1
+      ? [z, y, -x]
+      : [-z, y, x];
+  }
+
+  return direction === 1
+    ? [-y, x, z]
+    : [y, -x, z];
+}
+
+function getSticker(
+  face: Face,
+  row: number,
+  col: number
+): {
+  position: Vec3;
+  normal: Vec3;
+} {
+  switch (face) {
+    case "F":
+      return {
+        position: [col - 1, 1 - row, 1],
+        normal: [0, 0, 1],
+      };
+
+    case "B":
+      return {
+        position: [1 - col, 1 - row, -1],
+        normal: [0, 0, -1],
+      };
+
+    case "U":
+      return {
+        position: [
+          col - 1,
+          1,
+          row === 0 ? 1 : row === 2 ? -1 : 0,
+        ],
+        normal: [0, 1, 0],
+      };
+
+    case "D":
+      return {
+        position: [
+          col - 1,
+          -1,
+          row === 0 ? -1 : row === 2 ? 1 : 0,
+        ],
+        normal: [0, -1, 0],
+      };
+
+    case "L":
+      return {
+        position: [-1, 1 - row, col - 1],
+        normal: [-1, 0, 0],
+      };
+
+    case "R":
+      return {
+        position: [1, 1 - row, 1 - col],
+        normal: [1, 0, 0],
+      };
+  }
+}
+
+function findSticker(
+  position: Vec3,
+  normal: Vec3
+): {
+  face: Face;
+  row: number;
+  col: number;
+} {
+  for (const face of faces) {
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const sticker = getSticker(
+          face,
+          row,
+          col
+        );
+
+        if (
+          sticker.position[0] === position[0] &&
+          sticker.position[1] === position[1] &&
+          sticker.position[2] === position[2] &&
+          sticker.normal[0] === normal[0] &&
+          sticker.normal[1] === normal[1] &&
+          sticker.normal[2] === normal[2]
+        ) {
+          return {
+            face,
+            row,
+            col,
+          };
+        }
       }
     }
   }
 
-  return result;
+  throw new Error("Invalid sticker position");
 }
 
-function reverse(values: Color[]): Color[] {
-  return [...values].reverse();
-}
-
-function getRow(
-  cube: CubeState,
-  face: Face,
-  row: number
-): Color[] {
-  return [...cube[face][row]];
-}
-
-function setRow(
-  cube: CubeState,
-  face: Face,
-  row: number,
-  values: Color[]
-) {
-  cube[face][row] = [...values];
-}
-
-function getCol(
-  cube: CubeState,
-  face: Face,
-  col: number
-): Color[] {
-  return cube[face].map((row) => row[col]);
-}
-
-function setCol(
-  cube: CubeState,
-  face: Face,
-  col: number,
-  values: Color[]
-) {
-  for (let i = 0; i < 3; i++) {
-    cube[face][i][col] = values[i];
+const moveData: Record<
+  Face,
+  {
+    axis: "x" | "y" | "z";
+    layer: number;
+    direction: number;
   }
-}
+> = {
+  U: {
+    axis: "y",
+    layer: 1,
+    direction: 1,
+  },
+  D: {
+    axis: "y",
+    layer: -1,
+    direction: -1,
+  },
+  L: {
+    axis: "x",
+    layer: -1,
+    direction: 1,
+  },
+  R: {
+    axis: "x",
+    layer: 1,
+    direction: -1,
+  },
+  F: {
+    axis: "z",
+    layer: 1,
+    direction: -1,
+  },
+  B: {
+    axis: "z",
+    layer: -1,
+    direction: 1,
+  },
+};
 
-function moveU(cube: CubeState): CubeState {
-  const next = cloneCube(cube);
-
-  next.U = rotateFace(cube.U);
-
-  const f = getRow(cube, "F", 0);
-  const r = getRow(cube, "R", 0);
-  const b = getRow(cube, "B", 0);
-  const l = getRow(cube, "L", 0);
-
-  setRow(next, "F", 0, l);
-  setRow(next, "R", 0, f);
-  setRow(next, "B", 0, r);
-  setRow(next, "L", 0, b);
-
-  return next;
-}
-
-function moveD(cube: CubeState): CubeState {
-  const next = cloneCube(cube);
-
-  next.D = rotateFace(cube.D);
-
-  const f = getRow(cube, "F", 2);
-  const r = getRow(cube, "R", 2);
-  const b = getRow(cube, "B", 2);
-  const l = getRow(cube, "L", 2);
-
-  setRow(next, "F", 2, r);
-  setRow(next, "R", 2, b);
-  setRow(next, "B", 2, l);
-  setRow(next, "L", 2, f);
-
-  return next;
-}
-
-function moveF(cube: CubeState): CubeState {
-  const next = cloneCube(cube);
-
-  next.F = rotateFace(cube.F);
-
-  const u = getRow(cube, "U", 2);
-  const r = getCol(cube, "R", 0);
-  const d = getRow(cube, "D", 0);
-  const l = getCol(cube, "L", 2);
-
-  setRow(next, "U", 2, reverse(l));
-  setCol(next, "R", 0, u);
-  setRow(next, "D", 0, reverse(r));
-  setCol(next, "L", 2, d);
-
-  return next;
-}
-
-function moveB(cube: CubeState): CubeState {
-  const next = cloneCube(cube);
-
-  next.B = rotateFace(cube.B);
-
-  const u = getRow(cube, "U", 0);
-  const r = getCol(cube, "R", 2);
-  const d = getRow(cube, "D", 2);
-  const l = getCol(cube, "L", 0);
-
-  setRow(next, "U", 0, r);
-  setCol(next, "R", 2, reverse(d));
-  setRow(next, "D", 2, l);
-  setCol(next, "L", 0, reverse(u));
-
-  return next;
-}
-
-function moveR(cube: CubeState): CubeState {
-  const next = cloneCube(cube);
-
-  next.R = rotateFace(cube.R);
-
-  const u = getCol(cube, "U", 2);
-  const f = getCol(cube, "F", 2);
-  const d = getCol(cube, "D", 2);
-  const b = getCol(cube, "B", 0);
-
-  setCol(next, "U", 2, f);
-  setCol(next, "F", 2, d);
-  setCol(next, "D", 2, reverse(b));
-  setCol(next, "B", 0, reverse(u));
-
-  return next;
-}
-
-function moveL(cube: CubeState): CubeState {
-  const next = cloneCube(cube);
-
-  next.L = rotateFace(cube.L);
-
-  const u = getCol(cube, "U", 0);
-  const f = getCol(cube, "F", 0);
-  const d = getCol(cube, "D", 0);
-  const b = getCol(cube, "B", 2);
-
-  setCol(next, "U", 0, reverse(b));
-  setCol(next, "F", 0, u);
-  setCol(next, "D", 0, f);
-  setCol(next, "B", 2, reverse(d));
-
-  return next;
-}
-
-function applyClockwise(
+function rotateOnce(
   cube: CubeState,
   face: Face
 ): CubeState {
-  switch (face) {
-    case "U":
-      return moveU(cube);
-    case "D":
-      return moveD(cube);
-    case "F":
-      return moveF(cube);
-    case "B":
-      return moveB(cube);
-    case "R":
-      return moveR(cube);
-    case "L":
-      return moveL(cube);
+  const next = cloneCube(cube);
+  const data = moveData[face];
+
+  for (const sourceFace of faces) {
+    for (let row = 0; row < 3; row++) {
+      for (let col = 0; col < 3; col++) {
+        const sticker = getSticker(
+          sourceFace,
+          row,
+          col
+        );
+
+        const coordinate =
+          data.axis === "x"
+            ? sticker.position[0]
+            : data.axis === "y"
+              ? sticker.position[1]
+              : sticker.position[2];
+
+        if (coordinate !== data.layer) {
+          continue;
+        }
+
+        const position = rotateVector(
+          sticker.position,
+          data.axis,
+          data.direction
+        );
+
+        const normal = rotateVector(
+          sticker.normal,
+          data.axis,
+          data.direction
+        );
+
+        const destination = findSticker(
+          position,
+          normal
+        );
+
+        next[destination.face][
+          destination.row
+        ][destination.col] =
+          cube[sourceFace][row][col];
+      }
+    }
   }
+
+  return next;
 }
 
 export function applyMove(
@@ -198,21 +224,21 @@ export function applyMove(
   const face = move[0] as Face;
 
   if (move.endsWith("2")) {
-    return applyClockwise(
-      applyClockwise(cube, face),
+    return rotateOnce(
+      rotateOnce(cube, face),
       face
     );
   }
 
   if (move.endsWith("'")) {
-    let result = cube;
-
-    for (let i = 0; i < 3; i++) {
-      result = applyClockwise(result, face);
-    }
-
-    return result;
+    return rotateOnce(
+      rotateOnce(
+        rotateOnce(cube, face),
+        face
+      ),
+      face
+    );
   }
 
-  return applyClockwise(cube, face);
+  return rotateOnce(cube, face);
 }
