@@ -38,6 +38,8 @@ interface CubeStore {
   nextStep: () => void;
   previousStep: () => void;
   restartSolution: () => void;
+  playSolution: () => void;
+  pauseSolution: () => void;
 }
 
 const getInverseMove = (move: Move): Move => {
@@ -146,14 +148,10 @@ export const useCubeStore = create<CubeStore>(
             ],
             solution: [],
             currentStep: 0,
-            moveQueue: state.moveQueue.slice(1),
-            isAnimating:
-              state.moveQueue.length > 1,
+            moveQueue: [],
+            isAnimating: false,
             solutionPlaying: false,
-            animationAction:
-              state.moveQueue.length > 1
-                ? action
-                : "normal",
+            animationAction: "normal",
           };
         }
 
@@ -178,30 +176,39 @@ export const useCubeStore = create<CubeStore>(
             redoStack,
             solution: [],
             currentStep: 0,
-            moveQueue: state.moveQueue.slice(1),
-            isAnimating:
-              state.moveQueue.length > 1,
+            moveQueue: [],
+            isAnimating: false,
             solutionPlaying: false,
-            animationAction:
-              state.moveQueue.length > 1
-                ? action
-                : "normal",
+            animationAction: "normal",
           };
         }
 
         if (action === "solution") {
+          const nextStep =
+            state.currentStep;
+
+          if (
+            state.solutionPlaying &&
+            nextStep < state.solution.length
+          ) {
+            return {
+              cube: applyMove(state.cube, move),
+              moveQueue: [
+                state.solution[nextStep],
+              ],
+              currentStep: nextStep + 1,
+              isAnimating: true,
+              solutionPlaying: true,
+              animationAction: "solution",
+            };
+          }
+
           return {
             cube: applyMove(state.cube, move),
-            history: state.history,
-            redoStack: state.redoStack,
-            moveQueue: state.moveQueue.slice(1),
-            isAnimating:
-              state.moveQueue.length > 1,
-            solutionPlaying: true,
-            animationAction:
-              state.moveQueue.length > 1
-                ? action
-                : "normal",
+            moveQueue: [],
+            isAnimating: false,
+            solutionPlaying: false,
+            animationAction: "normal",
           };
         }
 
@@ -225,7 +232,7 @@ export const useCubeStore = create<CubeStore>(
 
         if (action === "reset") {
           const history = [...state.history];
-          const originalMove = history.pop();
+          history.pop();
 
           return {
             cube: applyMove(state.cube, move),
@@ -332,10 +339,8 @@ export const useCubeStore = create<CubeStore>(
         return;
       }
 
-      const inverseMove = getInverseMove(move);
-
       set({
-        moveQueue: [inverseMove],
+        moveQueue: [getInverseMove(move)],
         isAnimating: true,
         solution: [],
         currentStep: 0,
@@ -411,8 +416,37 @@ export const useCubeStore = create<CubeStore>(
         currentStep:
           state.currentStep + 1,
         isAnimating: true,
+        solutionPlaying: false,
+        animationAction: "solution",
+      });
+    },
+
+    playSolution: () => {
+      const state = get();
+
+      if (
+        state.isAnimating ||
+        state.currentStep >= state.solution.length
+      ) {
+        return;
+      }
+
+      const move =
+        state.solution[state.currentStep];
+
+      set({
+        moveQueue: [move],
+        currentStep:
+          state.currentStep + 1,
+        isAnimating: true,
         solutionPlaying: true,
         animationAction: "solution",
+      });
+    },
+
+    pauseSolution: () => {
+      set({
+        solutionPlaying: false,
       });
     },
 
@@ -441,8 +475,8 @@ export const useCubeStore = create<CubeStore>(
         currentStep: previousStep,
         moveQueue: [],
         isAnimating: false,
-        solutionPlaying: true,
-        animationAction: "solution",
+        solutionPlaying: false,
+        animationAction: "normal",
       });
     },
 
@@ -463,8 +497,8 @@ export const useCubeStore = create<CubeStore>(
         currentStep: 0,
         moveQueue: [],
         isAnimating: false,
-        solutionPlaying: true,
-        animationAction: "solution",
+        solutionPlaying: false,
+        animationAction: "normal",
       });
     },
   })

@@ -3,6 +3,7 @@
 import {
   ChevronLeft,
   ChevronRight,
+  Pause,
   Play,
   RotateCcw,
 } from "lucide-react";
@@ -18,6 +19,14 @@ export default function SolverControls() {
     (state) => state.nextStep
   );
 
+  const playSolution = useCubeStore(
+    (state) => state.playSolution
+  );
+
+  const pauseSolution = useCubeStore(
+    (state) => state.pauseSolution
+  );
+
   const restart = useCubeStore(
     (state) => state.restartSolution
   );
@@ -30,13 +39,27 @@ export default function SolverControls() {
     (state) => state.solution
   );
 
+  const solutionPlaying = useCubeStore(
+    (state) => state.solutionPlaying
+  );
+
+  const isComplete =
+    currentStep >= solution.length;
+
   return (
     <div>
       <div className="mb-4 flex items-center gap-2">
-        <Play
-          size={16}
-          className="text-cyan-300"
-        />
+        {solutionPlaying ? (
+          <Pause
+            size={16}
+            className="text-cyan-300"
+          />
+        ) : (
+          <Play
+            size={16}
+            className="text-cyan-300"
+          />
+        )}
 
         <h3 className="font-semibold">
           Solution Playback
@@ -53,26 +76,45 @@ export default function SolverControls() {
 
         <button
           onClick={previous}
-          disabled={currentStep === 0}
+          disabled={
+            currentStep === 0 ||
+            solutionPlaying
+          }
           className="icon-button"
         >
           <ChevronLeft size={17} />
         </button>
 
         <button
-          onClick={next}
-          disabled={
-            currentStep >= solution.length
+          onClick={
+            solutionPlaying
+              ? pauseSolution
+              : playSolution
           }
-          className="flex flex-1 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/10 text-cyan-300 transition hover:bg-cyan-400/20"
+          disabled={
+            isComplete ||
+            solution.length === 0
+          }
+          className="flex flex-1 items-center justify-center rounded-xl border border-cyan-400/40 bg-cyan-400/10 text-cyan-300 transition hover:bg-cyan-400/20 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          <Play size={17} fill="currentColor" />
+          {solutionPlaying ? (
+            <Pause
+              size={17}
+              fill="currentColor"
+            />
+          ) : (
+            <Play
+              size={17}
+              fill="currentColor"
+            />
+          )}
         </button>
 
         <button
           onClick={next}
           disabled={
-            currentStep >= solution.length
+            currentStep >= solution.length ||
+            solutionPlaying
           }
           className="icon-button"
         >
@@ -91,7 +133,12 @@ export default function SolverControls() {
             style={{
               width:
                 solution.length > 0
-                  ? `${(currentStep / solution.length) * 100}%`
+                  ? `${Math.min(
+                      (currentStep /
+                        solution.length) *
+                        100,
+                      100
+                    )}%`
                   : "0%",
             }}
           />
