@@ -6,89 +6,148 @@ import {
   useState,
 } from "react";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import {
+  Canvas,
+  useFrame,
+} from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 
 import Cubie from "./Cubie";
 import { useCubeStore } from "@/store/cubeStore";
-import { Color, Move } from "@/types/cube";
+import {
+  Color,
+  CubeState,
+  Move,
+} from "@/types/cube";
 
-type Vec3 = [number, number, number];
-
-interface AnimatedMove {
-  move: Move;
-  progress: number;
+interface MoveData {
+  axis: "x" | "y" | "z";
+  layer: number;
+  angle: number;
 }
 
-const colorMap: Record<Color, Color> = {
-  white: "white",
-  yellow: "yellow",
-  red: "red",
-  orange: "orange",
-  blue: "blue",
-  green: "green",
-};
+interface CubieColors {
+  front?: Color;
+  back?: Color;
+  top?: Color;
+  bottom?: Color;
+  left?: Color;
+  right?: Color;
+}
 
-function getMoveData(move: Move) {
+function getMoveData(move: Move): MoveData {
   const face = move[0];
   const double = move.endsWith("2");
-  const prime = move.includes("'");
+  const prime = move.endsWith("'");
 
   let axis: "x" | "y" | "z" = "x";
   let layer = 1;
   let direction = 1;
 
-  if (face === "R") {
-    axis = "x";
-    layer = 1;
-    direction = -1;
-  }
+  switch (face) {
+    case "R":
+      axis = "x";
+      layer = 1;
+      direction = -1;
+      break;
 
-  if (face === "L") {
-    axis = "x";
-    layer = -1;
-    direction = 1;
-  }
+    case "L":
+      axis = "x";
+      layer = -1;
+      direction = 1;
+      break;
 
-  if (face === "U") {
-    axis = "y";
-    layer = 1;
-    direction = -1;
-  }
+    case "U":
+      axis = "y";
+      layer = 1;
+      direction = -1;
+      break;
 
-  if (face === "D") {
-    axis = "y";
-    layer = -1;
-    direction = 1;
-  }
+    case "D":
+      axis = "y";
+      layer = -1;
+      direction = 1;
+      break;
 
-  if (face === "F") {
-    axis = "z";
-    layer = 1;
-    direction = -1;
-  }
+    case "F":
+      axis = "z";
+      layer = 1;
+      direction = -1;
+      break;
 
-  if (face === "B") {
-    axis = "z";
-    layer = -1;
-    direction = 1;
+    case "B":
+      axis = "z";
+      layer = -1;
+      direction = 1;
+      break;
   }
 
   if (prime) {
     direction *= -1;
   }
 
-  const angle =
-    Math.PI / 2 *
-    direction *
-    (double ? 2 : 1);
-
   return {
     axis,
     layer,
-    angle,
+    angle:
+      (Math.PI / 2) *
+      direction *
+      (double ? 2 : 1),
   };
+}
+
+function getCubieColors(
+  cube: CubeState,
+  x: number,
+  y: number,
+  z: number
+): CubieColors {
+  const colors: CubieColors = {};
+
+  if (z === 1) {
+    colors.front =
+      cube.F[1 - y][x + 1];
+  }
+
+  if (z === -1) {
+    colors.back =
+      cube.B[1 - y][1 - x];
+  }
+
+  if (y === 1) {
+    colors.top =
+      cube.U[
+        z === -1
+          ? 2
+          : z === 1
+            ? 0
+            : 1
+      ][x + 1];
+  }
+
+  if (y === -1) {
+    colors.bottom =
+      cube.D[
+        z === 1
+          ? 0
+          : z === -1
+            ? 2
+            : 1
+      ][x + 1];
+  }
+
+  if (x === -1) {
+    colors.left =
+      cube.L[1 - y][z + 1];
+  }
+
+  if (x === 1) {
+    colors.right =
+      cube.R[1 - y][1 - z];
+  }
+
+  return colors;
 }
 
 function AnimatedLayer({
@@ -100,51 +159,70 @@ function AnimatedLayer({
   children: React.ReactNode;
   onComplete: () => void;
 }) {
-  const groupRef = useRef<THREE.Group>(null);
-  const [finished, setFinished] = useState(false);
+  const groupRef =
+    useRef<THREE.Group>(null);
+
+  const completedRef =
+    useRef(false);
 
   const data = getMoveData(move);
 
-  const startRotation = useRef(0);
+  const targetRotation =
+    useRef(data.angle);
 
   useEffect(() => {
-    if (!groupRef.current) return;
+    completedRef.current = false;
 
-    startRotation.current =
-      groupRef.current.rotation[data.axis];
-  }, [data.axis]);
-
-  useFrame((_, delta) => {
-    if (!groupRef.current || finished) {
+    if (!groupRef.current) {
       return;
     }
 
-    const target =
-      startRotation.current + data.angle;
-
-    const current =
-      groupRef.current.rotation[data.axis];
-
-    const speed = 8;
-
-    const next = THREE.MathUtils.damp(
-      current,
-      target,
-      speed,
-      delta
+    groupRef.current.rotation.set(
+      0,
+      0,
+      0
     );
 
-    groupRef.current.rotation[data.axis] =
+    targetRotation.current =
+      data.angle;
+  }, [move, data.angle]);
+
+  useFrame((_, delta) => {
+    if (
+      !groupRef.current ||
+      completedRef.current
+    ) {
+      return;
+    }
+
+    const axis = data.axis;
+
+    const current =
+      groupRef.current.rotation[axis];
+
+    const target =
+      targetRotation.current;
+
+    const next =
+      THREE.MathUtils.damp(
+        current,
+        target,
+        14,
+        delta
+      );
+
+    groupRef.current.rotation[axis] =
       next;
 
     if (
       Math.abs(target - next) <
-      0.002
+      0.001
     ) {
-      groupRef.current.rotation[data.axis] =
+      groupRef.current.rotation[axis] =
         target;
 
-      setFinished(true);
+      completedRef.current = true;
+
       onComplete();
     }
   });
@@ -161,7 +239,7 @@ function StaticCubies({
   excludeLayer,
   axis,
 }: {
-  cube: any;
+  cube: CubeState;
   excludeLayer?: number;
   axis?: "x" | "y" | "z";
 }) {
@@ -171,7 +249,7 @@ function StaticCubies({
     for (let y = -1; y <= 1; y++) {
       for (let z = -1; z <= 1; z++) {
         if (
-          axis &&
+          axis !== undefined &&
           excludeLayer !== undefined
         ) {
           const value =
@@ -186,62 +264,16 @@ function StaticCubies({
           }
         }
 
-        const colors: {
-          front?: Color;
-          back?: Color;
-          top?: Color;
-          bottom?: Color;
-          left?: Color;
-          right?: Color;
-        } = {};
-
-        if (z === 1) {
-          colors.front =
-            cube.F[1 - y][x + 1];
-        }
-
-        if (z === -1) {
-          colors.back =
-            cube.B[1 - y][1 - x];
-        }
-
-        if (y === 1) {
-          colors.top =
-            cube.U[
-              z === -1
-                ? 2
-                : z === 1
-                  ? 0
-                  : 1
-            ][x + 1];
-        }
-
-        if (y === -1) {
-          colors.bottom =
-            cube.D[
-              z === 1
-                ? 0
-                : z === -1
-                  ? 2
-                  : 1
-            ][x + 1];
-        }
-
-        if (x === -1) {
-          colors.left =
-            cube.L[1 - y][z + 1];
-        }
-
-        if (x === 1) {
-          colors.right =
-            cube.R[1 - y][1 - z];
-        }
-
         cubies.push(
           <Cubie
             key={`${x}-${y}-${z}`}
             position={[x, y, z]}
-            colors={colors}
+            colors={getCubieColors(
+              cube,
+              x,
+              y,
+              z
+            )}
           />
         );
       }
@@ -267,22 +299,51 @@ function CubeModel() {
   const [activeMove, setActiveMove] =
     useState<Move | null>(null);
 
+  const [animationCube, setAnimationCube] =
+    useState<CubeState | null>(null);
+
+  const processingRef =
+    useRef(false);
+
   useEffect(() => {
     if (
-      activeMove !== null ||
+      processingRef.current ||
       moveQueue.length === 0
     ) {
       return;
     }
 
-    setActiveMove(moveQueue[0]);
-  }, [moveQueue, activeMove]);
+    const move = moveQueue[0];
+
+    /*
+     * Capture the exact cube state BEFORE
+     * the logical move is completed.
+     *
+     * This snapshot remains unchanged for
+     * the entire physical animation.
+     */
+    setAnimationCube({
+      U: cube.U.map((row) => [...row]),
+      D: cube.D.map((row) => [...row]),
+      L: cube.L.map((row) => [...row]),
+      R: cube.R.map((row) => [...row]),
+      F: cube.F.map((row) => [...row]),
+      B: cube.B.map((row) => [...row]),
+    });
+
+    processingRef.current = true;
+    setActiveMove(move);
+  }, [moveQueue, cube]);
 
   const moveData = activeMove
     ? getMoveData(activeMove)
     : null;
 
-  if (!activeMove || !moveData) {
+  if (
+    activeMove === null ||
+    moveData === null ||
+    animationCube === null
+  ) {
     return (
       <group>
         <StaticCubies cube={cube} />
@@ -292,8 +353,10 @@ function CubeModel() {
 
   const animatedCubies = [];
 
-  const axis = moveData.axis;
-  const layer = moveData.layer;
+  const {
+    axis,
+    layer,
+  } = moveData;
 
   for (let x = -1; x <= 1; x++) {
     for (let y = -1; y <= 1; y++) {
@@ -309,62 +372,16 @@ function CubeModel() {
           continue;
         }
 
-        const colors: {
-          front?: Color;
-          back?: Color;
-          top?: Color;
-          bottom?: Color;
-          left?: Color;
-          right?: Color;
-        } = {};
-
-        if (z === 1) {
-          colors.front =
-            cube.F[1 - y][x + 1];
-        }
-
-        if (z === -1) {
-          colors.back =
-            cube.B[1 - y][1 - x];
-        }
-
-        if (y === 1) {
-          colors.top =
-            cube.U[
-              z === -1
-                ? 2
-                : z === 1
-                  ? 0
-                  : 1
-            ][x + 1];
-        }
-
-        if (y === -1) {
-          colors.bottom =
-            cube.D[
-              z === 1
-                ? 0
-                : z === -1
-                  ? 2
-                  : 1
-            ][x + 1];
-        }
-
-        if (x === -1) {
-          colors.left =
-            cube.L[1 - y][z + 1];
-        }
-
-        if (x === 1) {
-          colors.right =
-            cube.R[1 - y][1 - z];
-        }
-
         animatedCubies.push(
           <Cubie
             key={`${x}-${y}-${z}`}
             position={[x, y, z]}
-            colors={colors}
+            colors={getCubieColors(
+              animationCube,
+              x,
+              y,
+              z
+            )}
           />
         );
       }
@@ -374,7 +391,7 @@ function CubeModel() {
   return (
     <group>
       <StaticCubies
-        cube={cube}
+        cube={animationCube}
         excludeLayer={layer}
         axis={axis}
       />
@@ -383,7 +400,11 @@ function CubeModel() {
         move={activeMove}
         onComplete={() => {
           finishMove(activeMove);
+
+          processingRef.current = false;
+
           setActiveMove(null);
+          setAnimationCube(null);
         }}
       >
         {animatedCubies}
