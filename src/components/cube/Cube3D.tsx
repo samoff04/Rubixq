@@ -10,19 +10,28 @@ import {
   Canvas,
   useFrame,
 } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
+
+import {
+  OrbitControls,
+} from "@react-three/drei";
+
 import * as THREE from "three";
 
 import Cubie from "./Cubie";
-import { useCubeStore } from "@/store/cubeStore";
+
 import {
-  createPhysicalCube,
-  getMoveData,
-  rotatePhysicalCube,
+  useCubeStore,
+} from "@/store/cubeStore";
+
+import {
+  Axis,
   PhysicalCubie,
+  MOVE_DATA,
 } from "@/lib/cube/physicalCube";
+
 import {
   Color,
+  Face,
   Move,
 } from "@/types/cube";
 
@@ -35,69 +44,121 @@ interface CubieColors {
   right?: Color;
 }
 
-function getCubieColors(
-  cubie: PhysicalCubie
-): CubieColors {
-  const colors: CubieColors = {};
+function getMoveData(
+  move: Move
+): {
+  axis: Axis;
+  layer: number;
+  angle: number;
+} {
+  const face =
+    move[0] as Face;
 
-  for (const sticker of cubie.stickers) {
-    const [x, y, z] =
-      sticker.normal;
+  const data =
+    MOVE_DATA[face];
 
-    if (x === 1) {
-      colors.right =
-        sticker.color;
-    }
+  const prime =
+    move.endsWith("'");
 
-    if (x === -1) {
-      colors.left =
-        sticker.color;
-    }
+  const double =
+    move.endsWith("2");
 
-    if (y === 1) {
-      colors.top =
-        sticker.color;
-    }
+  let direction =
+    data.direction;
 
-    if (y === -1) {
-      colors.bottom =
-        sticker.color;
-    }
-
-    if (z === 1) {
-      colors.front =
-        sticker.color;
-    }
-
-    if (z === -1) {
-      colors.back =
-        sticker.color;
-    }
+  if (prime) {
+    direction *= -1;
   }
 
-  return colors;
+  return {
+    axis: data.axis,
+
+    layer: data.layer,
+
+    angle:
+      direction *
+      (Math.PI / 2) *
+      (double ? 2 : 1),
+  };
+}
+
+function getAxisValue(
+  cubie: PhysicalCubie,
+  axis: Axis
+): number {
+  if (axis === "x") {
+    return cubie.x;
+  }
+
+  if (axis === "y") {
+    return cubie.y;
+  }
+
+  return cubie.z;
+}
+
+function physicalCubieColors(
+  cubie: PhysicalCubie
+): CubieColors {
+  return {
+    front: cubie.stickers.F,
+    back: cubie.stickers.B,
+
+    top: cubie.stickers.U,
+    bottom: cubie.stickers.D,
+
+    left: cubie.stickers.L,
+    right: cubie.stickers.R,
+  };
+}
+
+function CubieView({
+  cubie,
+}: {
+  cubie: PhysicalCubie;
+}) {
+  return (
+    <Cubie
+      position={[
+        cubie.x,
+        cubie.y,
+        cubie.z,
+      ]}
+      colors={physicalCubieColors(
+        cubie
+      )}
+    />
+  );
 }
 
 function AnimatedLayer({
   move,
-  cubies,
+  children,
   onComplete,
 }: {
   move: Move;
-  cubies: PhysicalCubie[];
+  children: React.ReactNode;
   onComplete: () => void;
 }) {
   const groupRef =
     useRef<THREE.Group>(null);
 
-  const completedRef =
+  const started =
     useRef(false);
+
+  const completed =
+    useRef(false);
+
+  const elapsed =
+    useRef(0);
 
   const data =
     getMoveData(move);
 
   useEffect(() => {
-    completedRef.current = false;
+    started.current = false;
+    completed.current = false;
+    elapsed.current = 0;
 
     if (groupRef.current) {
       groupRef.current.rotation.set(
@@ -106,43 +167,84 @@ function AnimatedLayer({
         0
       );
     }
+
+    /*
+     * Start the animation only after
+     * the group exists.
+     */
+    requestAnimationFrame(() => {
+      started.current = true;
+    });
   }, [move]);
 
   useFrame((_, delta) => {
     if (
       !groupRef.current ||
-      completedRef.current
+      !started.current ||
+      completed.current
     ) {
       return;
     }
 
-    const current =
-      groupRef.current.rotation[
-        data.axis
-      ];
+    elapsed.current += delta;
 
-    const next =
-      THREE.MathUtils.damp(
-        current,
-        data.angle,
-        14,
-        delta
+    /*
+     * Fixed animation duration gives
+     * predictable physical movement.
+     */
+    const duration = 0.32;
+
+    const progress =
+      Math.min(
+        elapsed.current / duration,
+        1
       );
 
-    groupRef.current.rotation[
-      data.axis
-    ] = next;
+    /*
+     * Smoothstep easing.
+     */
+    const eased =
+      progress *
+      progress *
+      (3 - 2 * progress);
 
-    if (
-      Math.abs(
-        data.angle - next
-      ) < 0.001
-    ) {
-      groupRef.current.rotation[
-        data.axis
-      ] = data.angle;
+    const angle =
+      data.angle * eased;
 
-      completedRef.current = true;
+    groupRef.current.rotation.set(
+      data.axis === "x"
+        ? angle
+        : 0,
+
+      data.axis === "y"
+        ? angle
+        : 0,
+
+      data.axis === "z"
+        ? angle
+        : 0
+    );
+
+    if (progress >= 1) {
+      completed.current = true;
+
+      /*
+       * Snap exactly to the mathematical
+       * target before committing state.
+       */
+      groupRef.current.rotation.set(
+        data.axis === "x"
+          ? data.angle
+          : 0,
+
+        data.axis === "y"
+          ? data.angle
+          : 0,
+
+        data.axis === "z"
+          ? data.angle
+          : 0
+      );
 
       onComplete();
     }
@@ -150,108 +252,93 @@ function AnimatedLayer({
 
   return (
     <group ref={groupRef}>
-      {cubies.map((cubie) => (
-        <Cubie
-          key={cubie.id}
-          position={cubie.position}
-          colors={getCubieColors(
-            cubie
-          )}
-        />
-      ))}
+      {children}
     </group>
   );
 }
 
 function CubeModel() {
+  const physicalCube =
+    useCubeStore(
+      (state) =>
+        state.physicalCube
+    );
+
   const moveQueue =
     useCubeStore(
-      (state) => state.moveQueue
+      (state) =>
+        state.moveQueue
     );
 
   const finishMove =
     useCubeStore(
-      (state) => state.finishMove
-    );
-
-  const [physicalCube, setPhysicalCube] =
-    useState<PhysicalCubie[]>(
-      createPhysicalCube
+      (state) =>
+        state.finishMove
     );
 
   const [activeMove, setActiveMove] =
     useState<Move | null>(null);
 
-  const processingRef =
+  const [snapshot, setSnapshot] =
+    useState<
+      PhysicalCubie[] | null
+    >(null);
+
+  const processing =
     useRef(false);
 
   useEffect(() => {
     if (
-      processingRef.current ||
+      processing.current ||
       moveQueue.length === 0
     ) {
       return;
     }
 
-    processingRef.current = true;
+    const move =
+      moveQueue[0];
 
-    setActiveMove(
-      moveQueue[0]
-    );
-  }, [moveQueue]);
+    /*
+     * Take an immutable physical snapshot.
+     *
+     * IMPORTANT:
+     * Every cubie retains its ID.
+     */
+    const frozen =
+      physicalCube.map(
+        (cubie) => ({
+          id: cubie.id,
 
-  const moveData = activeMove
-    ? getMoveData(activeMove)
-    : null;
+          x: cubie.x,
+          y: cubie.y,
+          z: cubie.z,
 
-  const animatedIds =
-    moveData
-      ? new Set(
-          physicalCube
-            .filter((cubie) => {
-              const coordinate =
-                moveData.axis === "x"
-                  ? cubie.position[0]
-                  : moveData.axis === "y"
-                    ? cubie.position[1]
-                    : cubie.position[2];
+          stickers: {
+            ...cubie.stickers,
+          },
+        })
+      );
 
-              return (
-                coordinate ===
-                moveData.layer
-              );
-            })
-            .map(
-              (cubie) => cubie.id
-            )
-        )
-      : new Set<string>();
+    processing.current = true;
 
-  const animatedCubies =
-    physicalCube.filter(
-      (cubie) =>
-        animatedIds.has(cubie.id)
-    );
+    setSnapshot(frozen);
+    setActiveMove(move);
+  }, [
+    moveQueue,
+    physicalCube,
+  ]);
 
-  const staticCubies =
-    physicalCube.filter(
-      (cubie) =>
-        !animatedIds.has(cubie.id)
-    );
-
-  if (!activeMove) {
+  if (
+    !activeMove ||
+    !snapshot
+  ) {
     return (
       <group>
         {physicalCube.map(
           (cubie) => (
-            <Cubie
+            <CubieView
               key={cubie.id}
-              position={
-                cubie.position
-              }
-              colors={getCubieColors(
-                cubie
-              )}
+              cubie={cubie}
             />
           )
         )}
@@ -259,44 +346,64 @@ function CubeModel() {
     );
   }
 
+  const {
+    axis,
+    layer,
+  } =
+    getMoveData(activeMove);
+
+  const staticCubies =
+    snapshot.filter(
+      (cubie) =>
+        getAxisValue(
+          cubie,
+          axis
+        ) !== layer
+    );
+
+  const animatedCubies =
+    snapshot.filter(
+      (cubie) =>
+        getAxisValue(
+          cubie,
+          axis
+        ) === layer
+    );
+
   return (
     <group>
       {staticCubies.map(
         (cubie) => (
-          <Cubie
+          <CubieView
             key={cubie.id}
-            position={
-              cubie.position
-            }
-            colors={getCubieColors(
-              cubie
-            )}
+            cubie={cubie}
           />
         )
       )}
 
       <AnimatedLayer
         move={activeMove}
-        cubies={animatedCubies}
         onComplete={() => {
-          setPhysicalCube(
-            (current) =>
-              rotatePhysicalCube(
-                current,
-                activeMove
-              )
-          );
-
           finishMove(
             activeMove
           );
 
-          processingRef.current =
+          processing.current =
             false;
 
           setActiveMove(null);
+          setSnapshot(null);
         }}
-      />
+      >
+        {animatedCubies.map(
+          (cubie) => (
+            <CubieView
+              key={cubie.id}
+              cubie={cubie}
+            />
+          )
+        )}
+      </AnimatedLayer>
     </group>
   );
 }
@@ -304,20 +411,34 @@ function CubeModel() {
 function Scene() {
   return (
     <>
-      <ambientLight intensity={2} />
+      <ambientLight
+        intensity={2}
+      />
 
       <directionalLight
-        position={[5, 8, 6]}
+        position={[
+          5,
+          8,
+          6,
+        ]}
         intensity={4}
       />
 
       <directionalLight
-        position={[-5, 3, -5]}
+        position={[
+          -5,
+          3,
+          -5,
+        ]}
         intensity={2}
       />
 
       <pointLight
-        position={[0, 4, 4]}
+        position={[
+          0,
+          4,
+          4,
+        ]}
         intensity={5}
       />
 
@@ -347,7 +468,11 @@ export default function Cube3D() {
 
       <Canvas
         camera={{
-          position: [5, 4, 6],
+          position: [
+            5,
+            4,
+            6,
+          ],
           fov: 42,
         }}
         dpr={[1, 2]}
@@ -355,7 +480,9 @@ export default function Cube3D() {
           antialias: true,
           alpha: false,
         }}
-        onCreated={({ gl }) => {
+        onCreated={({
+          gl,
+        }) => {
           gl.setClearColor(
             "#050913"
           );
