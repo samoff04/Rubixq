@@ -51,20 +51,13 @@ function getMoveData(
   layer: number;
   angle: number;
 } {
-  const face =
-    move[0] as Face;
+  const face = move[0] as Face;
+  const data = MOVE_DATA[face];
 
-  const data =
-    MOVE_DATA[face];
+  const prime = move.endsWith("'");
+  const double = move.endsWith("2");
 
-  const prime =
-    move.endsWith("'");
-
-  const double =
-    move.endsWith("2");
-
-  let direction =
-    data.direction;
+  let direction = data.direction;
 
   if (prime) {
     direction *= -1;
@@ -72,9 +65,7 @@ function getMoveData(
 
   return {
     axis: data.axis,
-
     layer: data.layer,
-
     angle:
       direction *
       (Math.PI / 2) *
@@ -103,10 +94,8 @@ function physicalCubieColors(
   return {
     front: cubie.stickers.F,
     back: cubie.stickers.B,
-
     top: cubie.stickers.U,
     bottom: cubie.stickers.D,
-
     left: cubie.stickers.L,
     right: cubie.stickers.R,
   };
@@ -124,9 +113,7 @@ function CubieView({
         cubie.y,
         cubie.z,
       ]}
-      colors={physicalCubieColors(
-        cubie
-      )}
+      colors={physicalCubieColors(cubie)}
     />
   );
 }
@@ -143,22 +130,18 @@ function AnimatedLayer({
   const groupRef =
     useRef<THREE.Group>(null);
 
-  const started =
-    useRef(false);
+  const elapsed =
+    useRef(0);
 
   const completed =
     useRef(false);
-
-  const elapsed =
-    useRef(0);
 
   const data =
     getMoveData(move);
 
   useEffect(() => {
-    started.current = false;
-    completed.current = false;
     elapsed.current = 0;
+    completed.current = false;
 
     if (groupRef.current) {
       groupRef.current.rotation.set(
@@ -167,20 +150,11 @@ function AnimatedLayer({
         0
       );
     }
-
-    /*
-     * Start the animation only after
-     * the group exists.
-     */
-    requestAnimationFrame(() => {
-      started.current = true;
-    });
   }, [move]);
 
   useFrame((_, delta) => {
     if (
       !groupRef.current ||
-      !started.current ||
       completed.current
     ) {
       return;
@@ -188,10 +162,6 @@ function AnimatedLayer({
 
     elapsed.current += delta;
 
-    /*
-     * Fixed animation duration gives
-     * predictable physical movement.
-     */
     const duration = 0.32;
 
     const progress =
@@ -200,9 +170,6 @@ function AnimatedLayer({
         1
       );
 
-    /*
-     * Smoothstep easing.
-     */
     const eased =
       progress *
       progress *
@@ -211,40 +178,48 @@ function AnimatedLayer({
     const angle =
       data.angle * eased;
 
-    groupRef.current.rotation.set(
-      data.axis === "x"
-        ? angle
-        : 0,
-
-      data.axis === "y"
-        ? angle
-        : 0,
-
-      data.axis === "z"
-        ? angle
-        : 0
-    );
+    if (data.axis === "x") {
+      groupRef.current.rotation.set(
+        angle,
+        0,
+        0
+      );
+    } else if (data.axis === "y") {
+      groupRef.current.rotation.set(
+        0,
+        angle,
+        0
+      );
+    } else {
+      groupRef.current.rotation.set(
+        0,
+        0,
+        angle
+      );
+    }
 
     if (progress >= 1) {
       completed.current = true;
 
-      /*
-       * Snap exactly to the mathematical
-       * target before committing state.
-       */
-      groupRef.current.rotation.set(
-        data.axis === "x"
-          ? data.angle
-          : 0,
-
-        data.axis === "y"
-          ? data.angle
-          : 0,
-
-        data.axis === "z"
-          ? data.angle
-          : 0
-      );
+      if (data.axis === "x") {
+        groupRef.current.rotation.set(
+          data.angle,
+          0,
+          0
+        );
+      } else if (data.axis === "y") {
+        groupRef.current.rotation.set(
+          0,
+          data.angle,
+          0
+        );
+      } else {
+        groupRef.current.rotation.set(
+          0,
+          0,
+          data.angle
+        );
+      }
 
       onComplete();
     }
@@ -280,46 +255,37 @@ function CubeModel() {
     useState<Move | null>(null);
 
   const [snapshot, setSnapshot] =
-    useState<
-      PhysicalCubie[] | null
-    >(null);
+    useState<PhysicalCubie[] | null>(
+      null
+    );
 
-  const processing =
-    useRef(false);
+  const activeMoveRef =
+    useRef<Move | null>(null);
 
   useEffect(() => {
     if (
-      processing.current ||
+      activeMoveRef.current !== null ||
       moveQueue.length === 0
     ) {
       return;
     }
 
-    const move =
-      moveQueue[0];
+    const move = moveQueue[0];
 
-    /*
-     * Take an immutable physical snapshot.
-     *
-     * IMPORTANT:
-     * Every cubie retains its ID.
-     */
     const frozen =
       physicalCube.map(
         (cubie) => ({
           id: cubie.id,
-
           x: cubie.x,
           y: cubie.y,
           z: cubie.z,
-
           stickers: {
             ...cubie.stickers,
           },
         })
       );
 
-    processing.current = true;
+    activeMoveRef.current = move;
 
     setSnapshot(frozen);
     setActiveMove(move);
@@ -327,6 +293,22 @@ function CubeModel() {
     moveQueue,
     physicalCube,
   ]);
+
+  const completeAnimation = () => {
+    const move =
+      activeMoveRef.current;
+
+    if (!move) {
+      return;
+    }
+
+    activeMoveRef.current = null;
+
+    finishMove(move);
+
+    setActiveMove(null);
+    setSnapshot(null);
+  };
 
   if (
     !activeMove ||
@@ -349,8 +331,7 @@ function CubeModel() {
   const {
     axis,
     layer,
-  } =
-    getMoveData(activeMove);
+  } = getMoveData(activeMove);
 
   const staticCubies =
     snapshot.filter(
@@ -383,17 +364,9 @@ function CubeModel() {
 
       <AnimatedLayer
         move={activeMove}
-        onComplete={() => {
-          finishMove(
-            activeMove
-          );
-
-          processing.current =
-            false;
-
-          setActiveMove(null);
-          setSnapshot(null);
-        }}
+        onComplete={
+          completeAnimation
+        }
       >
         {animatedCubies.map(
           (cubie) => (

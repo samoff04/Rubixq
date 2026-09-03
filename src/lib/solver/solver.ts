@@ -1,5 +1,14 @@
-import { CubeState, Move } from "@/types/cube";
-import { applyMove } from "@/lib/cube/moves";
+import {
+  CubeState,
+  Move,
+} from "@/types/cube";
+
+import {
+  applyPhysicalMove,
+  createPhysicalCube,
+  physicalCubeToState,
+} from "@/lib/cube/physicalCube";
+
 import { createSolvedCube } from "@/lib/cube/cubeState";
 
 const inverseMove = (move: Move): Move => {
@@ -14,7 +23,9 @@ const inverseMove = (move: Move): Move => {
   return `${move[0]}'` as Move;
 };
 
-const isSolved = (cube: CubeState): boolean => {
+const isSolved = (
+  cube: CubeState
+): boolean => {
   const solved = createSolvedCube();
 
   const faces = [
@@ -53,13 +64,26 @@ export const solveCube = (
     .reverse()
     .map(inverseMove);
 
-  let testCube = cube;
+  let physical = createPhysicalCube();
 
-  for (const move of solution) {
-    testCube = applyMove(testCube, move);
+  for (const move of history) {
+    physical = applyPhysicalMove(
+      physical,
+      move
+    );
   }
 
-  if (!isSolved(testCube)) {
+  for (const move of solution) {
+    physical = applyPhysicalMove(
+      physical,
+      move
+    );
+  }
+
+  const solvedState =
+    physicalCubeToState(physical);
+
+  if (!isSolved(solvedState)) {
     return [];
   }
 

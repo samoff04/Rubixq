@@ -88,22 +88,21 @@ function rotateVector(
 ): [number, number, number] {
   const [x, y, z] = vector;
 
-  switch (axis) {
-    case "x":
-      return direction === 1
-        ? [x, -z, y]
-        : [x, z, -y];
-
-    case "y":
-      return direction === 1
-        ? [z, y, -x]
-        : [-z, y, x];
-
-    case "z":
-      return direction === 1
-        ? [y, -x, z]
-        : [-y, x, z];
+  if (axis === "x") {
+    return direction === 1
+      ? [x, -z, y]
+      : [x, z, -y];
   }
+
+  if (axis === "y") {
+    return direction === 1
+      ? [z, y, -x]
+      : [-z, y, x];
+  }
+
+  return direction === 1
+    ? [-y, x, z]
+    : [y, -x, z];
 }
 
 function vectorToFace(
@@ -111,10 +110,8 @@ function vectorToFace(
 ): Face {
   if (vector[1] === 1) return "U";
   if (vector[1] === -1) return "D";
-
   if (vector[0] === -1) return "L";
   if (vector[0] === 1) return "R";
-
   if (vector[2] === 1) return "F";
 
   return "B";
@@ -132,14 +129,16 @@ function rotateStickers(
 
     if (!color) continue;
 
-    const rotatedVector = rotateVector(
-      FACE_VECTORS[face],
+    const vector = FACE_VECTORS[face];
+
+    const rotated = rotateVector(
+      vector,
       axis,
       direction
     );
 
     const newFace =
-      vectorToFace(rotatedVector);
+      vectorToFace(rotated);
 
     result[newFace] = color;
   }
@@ -216,7 +215,8 @@ function applyQuarterTurn(
 ): PhysicalCubie[] {
   const data = MOVE_DATA[face];
 
-  const next = clonePhysicalCube(cubies);
+  const next =
+    clonePhysicalCube(cubies);
 
   for (const cubie of next) {
     const layerValue =
@@ -230,16 +230,16 @@ function applyQuarterTurn(
       continue;
     }
 
-    const rotatedPosition =
+    const position =
       rotateVector(
         [cubie.x, cubie.y, cubie.z],
         data.axis,
         direction
       );
 
-    cubie.x = rotatedPosition[0];
-    cubie.y = rotatedPosition[1];
-    cubie.z = rotatedPosition[2];
+    cubie.x = position[0];
+    cubie.y = position[1];
+    cubie.z = position[2];
 
     cubie.stickers =
       rotateStickers(
@@ -261,7 +261,7 @@ export function applyPhysicalMove(
   const data = MOVE_DATA[face];
 
   if (move.endsWith("2")) {
-    const firstTurn =
+    const first =
       applyQuarterTurn(
         cubies,
         face,
@@ -269,7 +269,7 @@ export function applyPhysicalMove(
       );
 
     return applyQuarterTurn(
-      firstTurn,
+      first,
       face,
       data.direction
     );
@@ -396,8 +396,7 @@ export function physicalCubeToState(
           break;
       }
 
-      cube[face][row][col] =
-        color;
+      cube[face][row][col] = color;
     }
   }
 
@@ -425,9 +424,16 @@ export function physicalCubeEquals(
       return false;
     }
 
-    for (const face of Object.keys(
-      ca.stickers
-    ) as Face[]) {
+    const faces: Face[] = [
+      "U",
+      "D",
+      "L",
+      "R",
+      "F",
+      "B",
+    ];
+
+    for (const face of faces) {
       if (
         ca.stickers[face] !==
         cb.stickers[face]
