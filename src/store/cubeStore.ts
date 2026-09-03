@@ -87,8 +87,10 @@ function isSolved(cube: CubeState): boolean {
   ];
 
   return faces.every((face) =>
-    face.every(
-      (color) => color === face[1][1]
+    face.every((row) =>
+      row.every(
+        (color) => color === face[1][1]
+      )
     )
   );
 }
@@ -175,11 +177,9 @@ export const useCubeStore =
 
       set({
         physicalCube: nextPhysical,
-
         cube: nextCube,
 
         history: nextHistory,
-
         redoStack: [],
 
         solution: [],
@@ -189,7 +189,6 @@ export const useCubeStore =
         isAnimating: false,
 
         solutionPlaying: false,
-
         animationAction: "normal",
       });
     },
@@ -203,14 +202,12 @@ export const useCubeStore =
 
       set({
         moveQueue: [move],
-
         isAnimating: true,
 
         solution: [],
         currentStep: 0,
 
         solutionPlaying: false,
-
         animationAction: "normal",
       });
     },
@@ -241,26 +238,20 @@ export const useCubeStore =
                 ];
 
           return {
-            physicalCube:
-              nextPhysical,
-
+            physicalCube: nextPhysical,
             cube: nextCube,
 
             history: nextHistory,
-
             redoStack: [],
 
             solution: [],
             currentStep: 0,
 
             moveQueue: [],
-
             isAnimating: false,
 
             solutionPlaying: false,
-
-            animationAction:
-              "normal",
+            animationAction: "normal",
           };
         }
 
@@ -281,9 +272,7 @@ export const useCubeStore =
           }
 
           return {
-            physicalCube:
-              nextPhysical,
-
+            physicalCube: nextPhysical,
             cube: nextCube,
 
             history,
@@ -297,13 +286,10 @@ export const useCubeStore =
             currentStep: 0,
 
             moveQueue: [],
-
             isAnimating: false,
 
             solutionPlaying: false,
-
-            animationAction:
-              "normal",
+            animationAction: "normal",
           };
         }
 
@@ -324,9 +310,7 @@ export const useCubeStore =
           }
 
           return {
-            physicalCube:
-              nextPhysical,
-
+            physicalCube: nextPhysical,
             cube: nextCube,
 
             history: [
@@ -340,13 +324,10 @@ export const useCubeStore =
             currentStep: 0,
 
             moveQueue: [],
-
             isAnimating: false,
 
             solutionPlaying: false,
-
-            animationAction:
-              "normal",
+            animationAction: "normal",
           };
         }
 
@@ -360,9 +341,7 @@ export const useCubeStore =
               state.solution.length
           ) {
             return {
-              physicalCube:
-                nextPhysical,
-
+              physicalCube: nextPhysical,
               cube: nextCube,
 
               currentStep:
@@ -375,18 +354,14 @@ export const useCubeStore =
               ],
 
               isAnimating: true,
-
               solutionPlaying: true,
 
-              animationAction:
-                "solution",
+              animationAction: "solution",
             };
           }
 
           return {
-            physicalCube:
-              nextPhysical,
-
+            physicalCube: nextPhysical,
             cube: nextCube,
 
             currentStep:
@@ -396,13 +371,10 @@ export const useCubeStore =
               ),
 
             moveQueue: [],
-
             isAnimating: false,
 
             solutionPlaying: false,
-
-            animationAction:
-              "normal",
+            animationAction: "normal",
           };
         }
 
@@ -419,13 +391,10 @@ export const useCubeStore =
                 ];
 
           return {
-            physicalCube:
-              nextPhysical,
-
+            physicalCube: nextPhysical,
             cube: nextCube,
 
             history: nextHistory,
-
             redoStack: [],
 
             solution: [],
@@ -455,13 +424,10 @@ export const useCubeStore =
             state.moveQueue.slice(1);
 
           return {
-            physicalCube:
-              nextPhysical,
-
+            physicalCube: nextPhysical,
             cube: nextCube,
 
             history,
-
             redoStack: [],
 
             solution: [],
@@ -482,19 +448,14 @@ export const useCubeStore =
         }
 
         return {
-          physicalCube:
-            nextPhysical,
-
+          physicalCube: nextPhysical,
           cube: nextCube,
 
           moveQueue: [],
-
           isAnimating: false,
 
           solutionPlaying: false,
-
-          animationAction:
-            "normal",
+          animationAction: "normal",
         };
       });
     },
@@ -515,7 +476,6 @@ export const useCubeStore =
 
       set({
         moveQueue: moves,
-
         isAnimating: true,
 
         redoStack: [],
@@ -524,7 +484,6 @@ export const useCubeStore =
         currentStep: 0,
 
         solutionPlaying: false,
-
         animationAction: "scramble",
       });
     },
@@ -551,11 +510,9 @@ export const useCubeStore =
           currentStep: 0,
 
           moveQueue: [],
-
           isAnimating: false,
 
           solutionPlaying: false,
-
           animationAction: "normal",
         });
 
@@ -577,11 +534,9 @@ export const useCubeStore =
           currentStep: 0,
 
           moveQueue: [],
-
           isAnimating: false,
 
           solutionPlaying: false,
-
           animationAction: "normal",
         });
 
@@ -595,7 +550,6 @@ export const useCubeStore =
 
       set({
         moveQueue: resetMoves,
-
         isAnimating: true,
 
         redoStack: [],
@@ -604,7 +558,6 @@ export const useCubeStore =
         currentStep: 0,
 
         solutionPlaying: false,
-
         animationAction: "reset",
       });
     },
@@ -637,7 +590,6 @@ export const useCubeStore =
         currentStep: 0,
 
         solutionPlaying: false,
-
         animationAction: "undo",
       });
     },
@@ -661,14 +613,12 @@ export const useCubeStore =
 
       set({
         moveQueue: [move],
-
         isAnimating: true,
 
         solution: [],
         currentStep: 0,
 
         solutionPlaying: false,
-
         animationAction: "redo",
       });
     },
@@ -692,11 +642,9 @@ export const useCubeStore =
         currentStep: 0,
 
         moveQueue: [],
-
         isAnimating: false,
 
         solutionPlaying: false,
-
         animationAction: "normal",
       });
     },
@@ -719,11 +667,9 @@ export const useCubeStore =
 
       set({
         moveQueue: [move],
-
         isAnimating: true,
 
         solutionPlaying: false,
-
         animationAction: "solution",
       });
     },
@@ -746,11 +692,9 @@ export const useCubeStore =
 
       set({
         moveQueue: [move],
-
         isAnimating: true,
 
         solutionPlaying: true,
-
         animationAction: "solution",
       });
     },
@@ -793,11 +737,9 @@ export const useCubeStore =
           previousStep,
 
         moveQueue: [],
-
         isAnimating: false,
 
         solutionPlaying: false,
-
         animationAction: "normal",
       });
     },
@@ -825,11 +767,9 @@ export const useCubeStore =
         currentStep: 0,
 
         moveQueue: [],
-
         isAnimating: false,
 
         solutionPlaying: false,
-
         animationAction: "normal",
       });
     },
